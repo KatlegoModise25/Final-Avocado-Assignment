@@ -104,3 +104,29 @@ plt.title('Average Price of Avocados from 2015 to 2023\n')
 
 # Show graph.
 plt.show()
+
+df1 = df.copy(deep = True)
+df1['Date'] = pd.to_datetime(df1['Date'])
+df1.set_index('Date',inplace = True)
+df1 = df1.resample('W').sum()
+df1.head()
+
+color1 = ['#296C92','#3EB489']
+fig,ax = plt.subplots(nrows = 1, ncols = 2,figsize = (15,5))
+
+plt.subplot(1,2,1)
+sns.distplot(df['Averageprice']);
+plt.title('Distribution : Averageprice')
+
+plt.subplot(1,2,2)
+sns.distplot(df1['Averageprice']);
+plt.title('Distribution : Averageprice')
+
+fig,ax = plt.subplots(nrows = 1, ncols = 1,figsize = (20,5))
+plt.subplot(1,1,1)
+sns.lineplot(x = df1.index ,y = 'Averageprice',data = df1,palette = color1);
+plt.title('AveragePrice vs Date')
+
+plt.show()
+fig.tight_layout(pad = 2)
+
