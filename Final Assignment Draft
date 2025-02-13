@@ -1,0 +1,106 @@
+#importing necessary libraries
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+import csv
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+# loading dataset
+df = pd.read_csv("Avocado_HassAvocadoBoard_20152023v1.0.1.csv", index_col=False)
+df.head() 
+
+# Print the first few rows 
+print("First few rows of the dataset:")
+print(df.head())
+
+# Print the summary statistics 
+print("\nSummary statistics of the dataset:")
+print(df.describe())
+
+# Check for missing values 
+print("\nMissing values in the dataset:")
+print(df.isnull().sum())
+
+df.shape
+
+print(f'Name of Columns is: \n {df.columns}')
+
+df.columns = df.columns.str.capitalize()
+df.head(
+
+# Checking duplicate row
+
+print(f'Is there duplicated rows in the columns?\n{df.duplicated().any()}')
+
+df.info()
+
+df['Date'] = pd.to_datetime(df['Date'])
+df['Date'].dtype
+
+df['Year'] =df['Date'].dt.year
+df.head()
+
+# Fill missing Smallbags 
+df['Smallbags'] = df['Smallbags'].fillna(df['Smallbags'].median())
+    
+# Fill missing LargeBags 
+df['Largebags'] = df['Largebags'].fillna(df['Largebags'].mean())
+    
+# Fill missing XLargeBags 
+df['Xlargebags'] = df['Xlargebags'].fillna(df['Xlargebags'].mean())
+
+print(f'Number of missing data in each column is : \n{df.isna().sum()}')
+
+df.head()
+df.to_csv('Avocado_Dataset_clean.csv')
+round(df.describe().T,3)
+
+obj_data = df.select_dtypes(include='object')
+obj_data.describe()
+title_type = df.groupby('Type')[['Averageprice','Totalbags','Totalvolume']].sum() 
+print(title_type)
+
+Avocado_Types = title_type.Averageprice.sort_values().index 
+prices = title_type.Averageprice.sort_values() 
+# Plot a pie chart.
+# The `autopct` argument defines the format applied to the data labels. 
+# The `startangle` argument determines which point in the pie to start plotting proportions from. 
+colors = ['#FF0000', '#0000FF'] 
+plt.pie(prices,colors=colors, labels = Avocado_Types, autopct='%1.1f%%',  startangle=140)
+
+centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+fig = plt.gcf()
+
+# Adding Circle in Pie chart
+fig.gca().add_artist(centre_circle)
+# Place the chart legend in a position which does not overlap with other components. 
+plt.legend(loc="best")
+plt.axis('equal')
+plt.show()
+
+title_Year = df.groupby('Year')[['Averageprice','Totalbags','Totalvolume']].sum() 
+print(title_Year)
+Sale_Year = title_Year.Averageprice.sort_values().index 
+Averprices = title_Year.Averageprice.sort_values() 
+# Plot total bill (y-axis) per day of the week (x-axis). 
+# We only have to call a single line of code from matplotlib to produce the base graph. 
+# We set the x-axis, y-axis, and the colour of the bars.
+plt.bar(Sale_Year, Averprices, color= 'Brown')
+
+# Set x and y-axis titles.
+plt.ylabel('Average Prices')
+plt.xlabel('\n Year') # Note: '\n' creates a newline (try removing it and see what happens)  
+
+# Set graph title.
+plt.title('Average Price of Avocados from 2015 to 2023\n')
+
+# Show graph.
+plt.show()
