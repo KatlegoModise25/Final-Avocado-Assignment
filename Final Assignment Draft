@@ -130,3 +130,145 @@ plt.title('AveragePrice vs Date')
 plt.show()
 fig.tight_layout(pad = 2)
 
+%pip install statsmodels
+
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib import pyplot as plt
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.model_selection import cross_val_score
+
+from sklearn import metrics
+from collections import Counter
+
+def Reg_Models_Evaluation_Metrics (model,X_train,y_train,X_test,y_test,y_pred):
+    cv_score = cross_val_score(estimator = model, X = X_train, y = y_train, cv = 10)
+    
+    # Calculating Adjusted R-squared
+    r2 = model.score(X_test, y_test)
+    # Number of observations is the shape along axis 0
+    n = X_test.shape[0]
+    # Number of features (predictors, p) is the shape along axis 1
+    p = X_test.shape[1]
+    # Adjusted R-squared formula
+    adjusted_r2 = 1-(1-r2)*(n-1)/(n-p-1)
+    RMSE = np.sqrt(metrics.mean_squared_error(y_test, y_pred))
+    R2 = model.score(X_test, y_test)
+    CV_R2 = cv_score.mean()
+
+    return R2, adjusted_r2, CV_R2, RMSE
+    
+    print('RMSE:', round(RMSE,4))
+    print('R2:', round(R2,4))
+    print('Adjusted R2:', round(adjusted_r2, 4) )
+    print("Cross Validated R2: ", round(cv_score.mean(),4) )
+
+column_names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT', 'MEDV']
+
+try:
+    raw_df1 = pd.read_csv('../input/avocado-prices/avocado.csv')
+except:
+    raw_df1 = pd.read_csv('avocado.csv')
+# Deleting column
+raw_df1 = raw_df1.drop('Unnamed: 0', axis = 1)
+numeric_columns = ['AveragePrice', 'Total Volume','4046', '4225', '4770', 'Total Bags', 'Small Bags', 'Large Bags', 'XLarge Bags']
+categorical_columns = ['Region', 'Type']
+time_columns = ['Data', 'Year']
+numeric_columns_boston = ['CRIM', 'ZN', 'INDUS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT']
+# Changing data types
+for i in raw_df1.columns:
+    if i == 'Date':
+        raw_df1[i] = raw_df1[i].astype('datetime64[ns]')
+    elif raw_df1[i].dtype == 'object':
+        raw_df1[i] = raw_df1[i].astype('category')
+df1 = raw_df1.copy()
+
+df1['Date'] = pd.to_datetime(df1['Date'])
+df1['month'] = df1['Date'].dt.month
+
+df1['Spring'] = df1['month'].between(3,5,inclusive='both')
+df1['Summer'] = df1['month'].between(6,8,inclusive='both')
+df1['Fall'] = df1['month'].between(9,11,inclusive='both')
+# df1['Winter'] = df1['month'].between(12,2,inclusive='both')
+
+df1.Spring = df1.Spring.replace({True: 1, False: 0})
+df1.Summer = df1.Summer.replace({True: 1, False: 0})
+df1.Fall = df1.Fall.replace({True: 1, False: 0})
+
+# Encoding labels for 'type'
+from sklearn.preprocessing import LabelEncoder
+le = LabelEncoder()
+df1['type'] = le.fit_transform(df1['type'])
+
+# Encoding 'region' (One Hot Encoding)
+from sklearn.preprocessing import OneHotEncoder
+ohe = OneHotEncoder(drop='first', handle_unknown='ignore')
+ohe = pd.get_dummies(data=df1, columns=['region'])
+
+df1 = ohe.drop(['Date','4046','4225','4770','Small Bags','Large Bags','XLarge Bags'], axis=1)
+
+def IQR_method (df,n,features):
+    """
+    Takes a dataframe and returns an index list corresponding to the observations 
+    containing more than n outliers according to the Tukey IQR method.
+    """
+    outlier_list = []
+    
+    for column in features:
+                
+        # 1st quartile (25%)
+        Q1 = np.percentile(df[column], 25)
+        # 3rd quartile (75%)
+        Q3 = np.percentile(df[column],75)
+        
+        # Interquartile range (IQR)
+        IQR = Q3 - Q1
+        
+        # outlier step
+        outlier_step = 1.5 * IQR
+        
+        # Determining a list of indices of outliers
+        outlier_list_column = df[(df[column] < Q1 - outlier_step) | (df[column] > Q3 + outlier_step )].index
+        
+        # appending the list of outliers 
+        outlier_list.extend(outlier_list_column)
+        
+    # selecting observations containing more than x outliers
+    outlier_list = Counter(outlier_list)        
+    multiple_outliers = list( k for k, v in outlier_list.items() if v > n )
+    
+    # Calculate the number of records below and above lower and above bound value respectively
+    df1 = df[df[column] < Q1 - outlier_step]
+    df2 = df[df[column] > Q3 + outlier_step]
+    
+    print('Total number of deleted outliers:', df1.shape[0]+df2.shape[0])
+    
+    return multiple_outliers
+
+numeric_columns2 = ['Total Volume', 'Total Bags']
+
+Outliers_IQR = IQR_method(df1,1,numeric_columns2)
+# dropping outliers
+df1 = df1.drop(Outliers_IQR, axis = 0).reset_index(drop=True)
+
+X = df1.drop('AveragePrice', axis=1)
+y = df1['AveragePrice']
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 42)
+
+from sklearn.preprocessing import StandardScaler
+
+# Creating function for scaling
+def Standard_Scaler (df, col_names):
+    features = df[col_names]
+    scaler = StandardScaler().fit(features.values)
+    features = scaler.transform(features.values)
+    df[col_names] = features
+    
+    return df
+
+col_names = ['Total Volume', 'Total Bags']
+X_train = Standard_Scaler (X_train, col_names)
+X_test = Standard_Scaler (X_test, col_names)
