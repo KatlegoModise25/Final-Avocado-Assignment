@@ -1,0 +1,5 @@
+**Problem Statement**
+**Objective**:
+To classify the types of avocados (Organic vs. Conventional) and predict their average prices using a regression model, utilizing data from the years  2016 - 2023.**
+**Background**:
+Avocados have gained immense popularity due to their nutritional benefits and versatile culinary uses. Their demand can fluctuate due to various factors, including seasonality, consumer preferences, and market trends. This analysis aims to leverage historical data to classify the type of avocado and predict its average price. Accurate predictions and classification can help stakeholders like farmers, retailers, and consumers make informed decisions.
